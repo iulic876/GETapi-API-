@@ -13,11 +13,35 @@ router.get('/', async (req: Request, res: Response) => {
     const workspaceId = req.user!.workspace_id;
     
     const result = await pool.query(
-      `SELECT c.*, u.name as created_by_name
-       FROM collections c
-       LEFT JOIN users u ON c.created_by = u.id
-       WHERE c.workspace_id = $1
-       ORDER BY c.created_at DESC`,
+      `
+      SELECT
+          c.id,
+          c.name,
+          c.description,
+          c.workspace_id,
+          c.created_by,
+          c.created_at,
+          c.updated_at,
+          u.name as created_by_name,
+          COALESCE(
+              (
+                  SELECT json_agg(r.* ORDER BY r.created_at ASC)
+                  FROM requests r
+                  WHERE r.collection_id = c.id
+              ),
+              '[]'::json
+          ) as requests
+      FROM
+          collections c
+      LEFT JOIN
+          users u ON c.created_by = u.id
+      WHERE
+          c.workspace_id = $1
+      GROUP BY
+          c.id, u.name
+      ORDER BY
+          c.created_at DESC
+      `,
       [workspaceId]
     );
 

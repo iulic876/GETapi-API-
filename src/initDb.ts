@@ -2,11 +2,8 @@ import pool from './config/database.js';
 
 const initDatabase = async () => {
   try {
-    // Drop tables if exists
-    await pool.query('DROP TABLE IF EXISTS variables');
-    await pool.query('DROP TABLE IF EXISTS requests');
-    await pool.query('DROP TABLE IF EXISTS collections');
-
+    console.log('🏗️  Verifying and building tables if they do not exist...');
+    
     // Create users table
     const createUsersTable = `
       CREATE TABLE IF NOT EXISTS users (
@@ -39,7 +36,7 @@ const initDatabase = async () => {
         UNIQUE(workspace_id, user_id)
       );
     `;
-
+    
     // Create collections table
     const createCollectionsTable = `
       CREATE TABLE IF NOT EXISTS collections (
@@ -63,10 +60,14 @@ const initDatabase = async () => {
         headers JSONB DEFAULT '{}',
         body JSONB DEFAULT '{}',
         params JSONB DEFAULT '{}',
-        collection_id INTEGER REFERENCES collections(id) ON DELETE CASCADE,
+        collection_id INTEGER NOT NULL,
         created_by INTEGER REFERENCES users(id) ON DELETE CASCADE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_collection
+          FOREIGN KEY(collection_id) 
+          REFERENCES collections(id)
+          ON DELETE CASCADE
       );
     `;
 
@@ -90,7 +91,7 @@ const initDatabase = async () => {
     await pool.query(createCollectionsTable);
     await pool.query(createRequestsTable);
     await pool.query(createVariablesTable);
-    console.log('✅ Tables initialized successfully');
+    console.log('✅ Database schema is up to date.');
   } catch (error) {
     console.error('❌ Table initialization failed:', error);
     process.exit(1);
