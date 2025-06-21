@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 
 // Debug log to check connection string
@@ -47,9 +48,16 @@ router.post('/register', async (req: Request, res: Response) => {
       );
 
       await client.query('COMMIT');
+      
+      const token = jwt.sign(
+        { id: user.id, email: user.email, workspace_id: workspaceResult.rows[0].id },
+        process.env.JWT_SECRET!,
+        { expiresIn: '1h' }
+      );
 
       res.status(201).json({
         message: 'User registered successfully',
+        token,
         user: {
           id: user.id,
           email: user.email,
@@ -104,9 +112,16 @@ router.post('/login', async (req: Request, res: Response) => {
     if (!validPassword) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
+    
+    const token = jwt.sign(
+      { id: user.id, email: user.email, workspace_id: user.workspace_id },
+      process.env.JWT_SECRET!,
+      { expiresIn: '1h' }
+    );
 
     res.status(200).json({
       message: 'Login successful',
+      token,
       user: {
         id: user.id,
         email: user.email,

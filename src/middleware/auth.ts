@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import pool from '../config/database.js';
 
 declare global {
@@ -17,20 +18,27 @@ declare global {
 
 export const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // For now, get user ID from query param or header (in real app, this would be JWT token)
-    const userId = req.query.userId || req.headers['user-id'];
-    
-    if (!userId) {
-      return res.status(401).json({ error: 'User ID required' });
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required: No token provided.' });
     }
 
+    const token = authHeader.split(' ')[1];
+    
+    let decoded: any;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    } catch (err) {
+      return res.status(401).json({ error: 'Authentication failed: Invalid token.' });
+    }
+    
     const result = await pool.query(
       `SELECT u.id, u.email, u.name, 
               w.id as workspace_id, w.name as workspace_name
        FROM users u
        LEFT JOIN workspaces w ON w.owner_id = u.id
        WHERE u.id = $1`,
-      [userId]
+      [decoded.id]
     );
 
     if (result.rows.length === 0) {
