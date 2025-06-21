@@ -122,11 +122,22 @@ router.post('/', async (req: Request, res: Response) => {
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, method, url, headers, body, params } = req.body;
+    const { name, method, url, headers, body, params, collection_id } = req.body;
     const workspaceId = req.user!.workspace_id;
 
-    if (!name && !method && !url && headers === undefined && body === undefined && params === undefined) {
+    if (!name && !method && !url && headers === undefined && body === undefined && params === undefined && collection_id === undefined) {
       return res.status(400).json({ error: 'At least one field to update is required' });
+    }
+
+    // If moving collections, verify the target collection belongs to the user's workspace
+    if (collection_id) {
+      const collectionCheck = await pool.query(
+        'SELECT id FROM collections WHERE id = $1 AND workspace_id = $2',
+        [collection_id, workspaceId]
+      );
+      if (collectionCheck.rows.length === 0) {
+        return res.status(404).json({ error: 'Target collection not found in your workspace' });
+      }
     }
 
     let query = 'UPDATE requests SET updated_at = CURRENT_TIMESTAMP';
@@ -166,6 +177,12 @@ router.put('/:id', async (req: Request, res: Response) => {
     if (params !== undefined) {
       query += `, params = $${paramCount}`;
       values.push(params);
+      paramCount++;
+    }
+
+    if (collection_id) {
+      query += `, collection_id = $${paramCount}`;
+      values.push(collection_id);
       paramCount++;
     }
 
