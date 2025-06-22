@@ -51,7 +51,7 @@ router.get('/collection/:collectionId', async (req: Request, res: Response) => {
     }
 
     const result = await pool.query(
-      `SELECT r.*, u.name as created_by_name
+      `SELECT r.id, r.name, r.method, r.url, r.headers, r.body, r.params, r.collection_id, r.created_by, r.created_at, r.updated_at, r.pre_request_script, r.post_request_script, u.name as created_by_name
        FROM requests r
        LEFT JOIN users u ON r.created_by = u.id
        WHERE r.collection_id = $1
@@ -95,7 +95,7 @@ router.get('/:id', async (req: Request, res: Response) => {
     const workspaceId = req.user!.workspace_id;
     
     const result = await pool.query(
-      `SELECT r.*, u.name as created_by_name
+      `SELECT r.id, r.name, r.method, r.url, r.headers, r.body, r.params, r.collection_id, r.created_by, r.created_at, r.updated_at, r.pre_request_script, r.post_request_script, u.name as created_by_name
        FROM requests r
        LEFT JOIN users u ON r.created_by = u.id
        LEFT JOIN collections c ON r.collection_id = c.id
@@ -334,6 +334,76 @@ router.put('/:id', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Update request error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/requests/scripts:
+ *   post:
+ *     summary: Update pre-request and post-request scripts for a request
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - requestId
+ *             properties:
+ *               requestId:
+ *                 type: integer
+ *               preRequestScript:
+ *                 type: string
+ *               postRequestScript:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Scripts updated successfully
+ *       400:
+ *         description: Request ID is required
+ *       404:
+ *         description: Request not found
+ */
+router.post('/scripts', async (req: Request, res: Response) => {
+  try {
+    const { requestId, preRequestScript, postRequestScript } = req.body;
+    const userId = req.user!.id; // Assuming you need to check ownership
+
+    if (!requestId) {
+      return res.status(400).json({ error: 'Request ID is required' });
+    }
+
+    // Check if the request belongs to the user's workspace
+    const requestCheck = await pool.query(
+      `SELECT r.id FROM requests r
+       JOIN collections c ON r.collection_id = c.id
+       WHERE c.workspace_id = (SELECT workspace_id FROM collections WHERE id = (SELECT collection_id FROM requests WHERE id = $1)) AND r.id = $1`,
+      [requestId]
+    );
+
+    if (requestCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Request not found or you do not have permission to edit it.' });
+    }
+
+    const result = await pool.query(
+      `UPDATE requests
+       SET pre_request_script = $1, post_request_script = $2
+       WHERE id = $3
+       RETURNING *`,
+      [preRequestScript, postRequestScript, requestId]
+    );
+
+    res.status(200).json({
+      message: 'Scripts updated successfully',
+      request: result.rows[0]
+    });
+  } catch (error) {
+    console.error('Update scripts error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
