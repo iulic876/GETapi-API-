@@ -8,6 +8,107 @@ console.log('Database URL:', process.env.DATABASE_URL);
 
 const router = Router();
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     User:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: User ID
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: User email
+ *         name:
+ *           type: string
+ *           description: User name
+ *     Workspace:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Workspace ID
+ *         name:
+ *           type: string
+ *           description: Workspace name
+ *     RegisterRequest:
+ *       type: object
+ *       required:
+ *         - email
+ *         - password
+ *         - name
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: User email
+ *         password:
+ *           type: string
+ *           description: User password
+ *         name:
+ *           type: string
+ *           description: User name
+ *     LoginRequest:
+ *       type: object
+ *       required:
+ *         - email
+ *         - password
+ *       properties:
+ *         email:
+ *           type: string
+ *           format: email
+ *           description: User email
+ *         password:
+ *           type: string
+ *           description: User password
+ *     AuthResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           description: Success message
+ *         token:
+ *           type: string
+ *           description: JWT token
+ *         user:
+ *           $ref: '#/components/schemas/User'
+ *         workspace:
+ *           $ref: '#/components/schemas/Workspace'
+ */
+
+/**
+ * @swagger
+ * /api/auth/register:
+ *   post:
+ *     summary: Register a new user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/RegisterRequest'
+ *           example:
+ *             email: "user@example.com"
+ *             password: "password123"
+ *             name: "John Doe"
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Missing required fields
+ *       409:
+ *         description: User already exists
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/register', async (req: Request, res: Response) => {
   try {
     const { email, password, name } = req.body;
@@ -87,6 +188,35 @@ router.post('/register', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/LoginRequest'
+ *           example:
+ *             email: "user@example.com"
+ *             password: "password123"
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AuthResponse'
+ *       400:
+ *         description: Missing required fields
+ *       401:
+ *         description: Invalid credentials
+ *       500:
+ *         description: Internal server error
+ */
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -138,6 +268,36 @@ router.post('/login', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * @swagger
+ * /api/auth/me/{userId}:
+ *   get:
+ *     summary: Get current user information
+ *     tags: [Authentication]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: User information retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *                 workspace:
+ *                   $ref: '#/components/schemas/Workspace'
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Internal server error
+ */
 // Get current user info
 router.get('/me/:userId', async (req: Request, res: Response) => {
   try {

@@ -1,6 +1,8 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import swaggerUi from 'swagger-ui-express';
+import specs from './swagger.js';
 import authRoutes from "./routes/auth.js";
 import workspaceRoutes from "./routes/workspace.js";
 import variablesRoutes from "./routes/variables.js";
@@ -16,6 +18,24 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
+/**
+ * @swagger
+ * /api/test:
+ *   get:
+ *     summary: Test endpoint
+ *     tags: [Test]
+ *     responses:
+ *       200:
+ *         description: Hello message
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: "Hello"
+ */
 app.use("/api/test", async function(req: Request, res: Response) {
    console.log("helllo");
    res.status(200).send("Hello");

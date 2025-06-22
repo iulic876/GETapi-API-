@@ -1,13 +1,41 @@
 import { Router, Request, Response } from 'express';
 import pool from '../config/database.js';
 import { authMiddleware } from '../middleware/auth.js';
+import { runCollection } from '../services/collectionRunner.js';
 
 const router = Router();
 
 // Apply auth middleware to all routes
 router.use(authMiddleware);
 
-// GET all collections for user's workspace
+/**
+ * @swagger
+ * tags:
+ *   name: Collections
+ *   description: Collections management
+ */
+
+/**
+ * @swagger
+ * /api/collections:
+ *   get:
+ *     summary: Get all collections for the user's workspace
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of collections
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 collections:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const workspaceId = req.user!.workspace_id;
@@ -54,7 +82,27 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// GET single collection with its requests
+/**
+ * @swagger
+ * /api/collections/{id}:
+ *   get:
+ *     summary: Get a single collection with its requests
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Collection ID
+ *     responses:
+ *       200:
+ *         description: Collection and its requests
+ *       404:
+ *         description: Collection not found
+ */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -93,7 +141,33 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST create collection
+/**
+ * @swagger
+ * /api/collections:
+ *   post:
+ *     summary: Create a new collection
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Collection created
+ *       400:
+ *         description: Collection name is required
+ */
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { name, description } = req.body;
@@ -121,7 +195,40 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT update collection
+/**
+ * @swagger
+ * /api/collections/{id}:
+ *   put:
+ *     summary: Update a collection
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Collection ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Collection updated
+ *       400:
+ *         description: At least one field to update is required
+ *       404:
+ *         description: Collection not found
+ */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -167,7 +274,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE collection
+/**
+ * @swagger
+ * /api/collections/{id}:
+ *   delete:
+ *     summary: Delete a collection
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Collection ID
+ *     responses:
+ *       200:
+ *         description: Collection deleted
+ *       404:
+ *         description: Collection not found
+ */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -188,6 +315,102 @@ router.delete('/:id', async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error('Delete collection error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * @swagger
+ * /api/collections/{collectionId}/run:
+ *   post:
+ *     summary: Run a collection
+ *     tags: [Collections]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: collectionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: The ID of the collection to run
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - executionMode
+ *               - environment
+ *               - variables
+ *             properties:
+ *               executionMode:
+ *                 type: string
+ *                 enum: [sequential, parallel]
+ *               delayBetweenRequests:
+ *                 type: integer
+ *                 description: Delay in ms between requests for sequential mode
+ *               environment:
+ *                 type: string
+ *                 enum: [development, staging, production]
+ *               variables:
+ *                 type: object
+ *                 additionalProperties: true
+ *           example:
+ *             executionMode: "sequential"
+ *             delayBetweenRequests: 1000
+ *             environment: "development"
+ *             variables:
+ *               baseUrl: "http://localhost:3001"
+ *               authToken: "your_token_here"
+ *     responses:
+ *       200:
+ *         description: Collection run results
+ *       400:
+ *         description: Invalid request body
+ *       404:
+ *         description: Collection not found
+ */
+router.post('/:collectionId/run', async (req: Request, res: Response) => {
+  try {
+    const { collectionId } = req.params;
+    const workspaceId = req.user!.workspace_id;
+    const { executionMode, delayBetweenRequests, environment, variables } = req.body;
+
+    if (!executionMode || !environment || !variables) {
+      return res.status(400).json({ error: 'executionMode, environment, and variables are required' });
+    }
+
+    // 1. Fetch collection and its requests
+    const collectionResult = await pool.query(
+      'SELECT id FROM collections WHERE id = $1 AND workspace_id = $2',
+      [collectionId, workspaceId]
+    );
+
+    if (collectionResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Collection not found' });
+    }
+    
+    const requestsResult = await pool.query(
+      'SELECT id, name, method, url, headers, body, params FROM requests WHERE collection_id = $1 ORDER BY created_at ASC',
+      [collectionId]
+    );
+
+    const requests = requestsResult.rows;
+
+    // 2. Execute the collection run
+    const runResults = await runCollection(requests, {
+      executionMode,
+      delayBetweenRequests,
+      environment,
+      variables,
+    });
+
+    res.status(200).json(runResults);
+
+  } catch (error) {
+    console.error('Collection run error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

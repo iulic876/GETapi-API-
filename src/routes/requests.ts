@@ -7,7 +7,34 @@ const router = Router();
 // Apply auth middleware to all routes
 router.use(authMiddleware);
 
-// GET all requests for a collection
+/**
+ * @swagger
+ * tags:
+ *   name: Requests
+ *   description: Requests management
+ */
+
+/**
+ * @swagger
+ * /api/requests/collection/{collectionId}:
+ *   get:
+ *     summary: Get all requests for a collection
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: collectionId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Collection ID
+ *     responses:
+ *       200:
+ *         description: List of requests
+ *       404:
+ *         description: Collection not found
+ */
 router.get('/collection/:collectionId', async (req: Request, res: Response) => {
   try {
     const { collectionId } = req.params;
@@ -41,7 +68,27 @@ router.get('/collection/:collectionId', async (req: Request, res: Response) => {
   }
 });
 
-// GET single request
+/**
+ * @swagger
+ * /api/requests/{id}:
+ *   get:
+ *     summary: Get a single request
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Request ID
+ *     responses:
+ *       200:
+ *         description: Request details
+ *       404:
+ *         description: Request not found
+ */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -69,7 +116,48 @@ router.get('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// POST create request
+/**
+ * @swagger
+ * /api/requests:
+ *   post:
+ *     summary: Create a new request
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - method
+ *               - url
+ *               - collection_id
+ *             properties:
+ *               name:
+ *                 type: string
+ *               method:
+ *                 type: string
+ *               url:
+ *                 type: string
+ *               headers:
+ *                 type: object
+ *               body:
+ *                 type: object
+ *               params:
+ *                 type: object
+ *               collection_id:
+ *                 type: integer
+ *     responses:
+ *       201:
+ *         description: Request created
+ *       400:
+ *         description: Required fields missing
+ *       404:
+ *         description: Collection not found
+ */
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { name, method, url, headers, body, params, collection_id } = req.body;
@@ -118,7 +206,50 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT update request
+/**
+ * @swagger
+ * /api/requests/{id}:
+ *   put:
+ *     summary: Update a request
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Request ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               method:
+ *                 type: string
+ *               url:
+ *                 type: string
+ *               headers:
+ *                 type: object
+ *               body:
+ *                 type: object
+ *               params:
+ *                 type: object
+ *               collection_id:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Request updated
+ *       400:
+ *         description: At least one field to update is required
+ *       404:
+ *         description: Request or target collection not found
+ */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -207,7 +338,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE request
+/**
+ * @swagger
+ * /api/requests/{id}:
+ *   delete:
+ *     summary: Delete a request
+ *     tags: [Requests]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Request ID
+ *     responses:
+ *       200:
+ *         description: Request deleted
+ *       404:
+ *         description: Request not found
+ */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

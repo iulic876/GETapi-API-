@@ -3,7 +3,32 @@ import pool from '../config/database.js';
 
 const router = Router();
 
-// Get workspace by user ID
+/**
+ * @swagger
+ * tags:
+ *   name: Workspaces
+ *   description: Workspace management
+ */
+
+/**
+ * @swagger
+ * /api/workspaces/user/{userId}:
+ *   get:
+ *     summary: Get workspace by user ID
+ *     tags: [Workspaces]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: Workspace for the user
+ *       404:
+ *         description: No workspace found for this user
+ */
 router.get('/user/:userId', async (req: Request, res: Response) => {
   try {
     const userId = req.params.userId;
@@ -28,7 +53,25 @@ router.get('/user/:userId', async (req: Request, res: Response) => {
   }
 });
 
-// Get workspace by ID
+/**
+ * @swagger
+ * /api/workspaces/{workspaceId}:
+ *   get:
+ *     summary: Get workspace by workspace ID
+ *     tags: [Workspaces]
+ *     parameters:
+ *       - in: path
+ *         name: workspaceId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Workspace ID
+ *     responses:
+ *       200:
+ *         description: Workspace details
+ *       404:
+ *         description: Workspace not found
+ */
 router.get('/:workspaceId', async (req: Request, res: Response) => {
   try {
     const workspaceId = req.params.workspaceId;

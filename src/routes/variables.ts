@@ -7,7 +7,31 @@ const router = Router();
 // Apply auth middleware to all routes
 router.use(authMiddleware);
 
-// GET variables for authenticated user's workspace
+/**
+ * @swagger
+ * tags:
+ *   name: Variables
+ *   description: Workspace variables management
+ */
+
+/**
+ * @swagger
+ * /api/variables:
+ *   get:
+ *     summary: Get all variables for the user's workspace
+ *     tags: [Variables]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: scope
+ *         schema:
+ *           type: string
+ *         description: Filter by variable scope
+ *     responses:
+ *       200:
+ *         description: List of variables
+ */
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { scope } = req.query;
@@ -36,7 +60,39 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-// POST create variable in authenticated user's workspace
+/**
+ * @swagger
+ * /api/variables:
+ *   post:
+ *     summary: Create a new variable
+ *     tags: [Variables]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - key
+ *               - value
+ *             properties:
+ *               key:
+ *                 type: string
+ *               value:
+ *                 type: string
+ *               scope:
+ *                 type: string
+ *                 default: workspace
+ *     responses:
+ *       201:
+ *         description: Variable created
+ *       400:
+ *         description: Key and value are required
+ *       409:
+ *         description: Variable already exists
+ */
 router.post('/', async (req: Request, res: Response) => {
   try {
     const { key, value, scope = 'workspace' } = req.body;
@@ -69,7 +125,42 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-// PUT update variable (only if it belongs to user's workspace)
+/**
+ * @swagger
+ * /api/variables/{id}:
+ *   put:
+ *     summary: Update a variable
+ *     tags: [Variables]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Variable ID
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               key:
+ *                 type: string
+ *               value:
+ *                 type: string
+ *               scope:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Variable updated
+ *       400:
+ *         description: At least one field to update is required
+ *       404:
+ *         description: Variable not found
+ */
 router.put('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -121,7 +212,27 @@ router.put('/:id', async (req: Request, res: Response) => {
   }
 });
 
-// DELETE variable (only if it belongs to user's workspace)
+/**
+ * @swagger
+ * /api/variables/{id}:
+ *   delete:
+ *     summary: Delete a variable
+ *     tags: [Variables]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Variable ID
+ *     responses:
+ *       200:
+ *         description: Variable deleted
+ *       404:
+ *         description: Variable not found
+ */
 router.delete('/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
